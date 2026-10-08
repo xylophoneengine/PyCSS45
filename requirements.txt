@@ -1,0 +1,8 @@
+# driver (same as pyproject.toml dependencies)
+numpy>=1.24,<1.25  # luxpy 1.11.4 fails to import with newer numpy
+pyserial>=3.5
+hidapi>=0.14
+
+# GUI (pycss45_gui.py); Tk comes with Python
+matplotlib>=3.7
+luxpy==1.11.4

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pycss45"
+version = "0.1.0"
+description = "Cross-platform driver for the Gigahertz-Optik CSS45 compact spectrometer (USB HID / RS232 wire protocol)"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Adrian Zwenger" }]
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.24", "pyserial>=3.5", "hidapi>=0.14"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering",
+    "Topic :: System :: Hardware :: Hardware Drivers",
+]
+
+[project.gui-scripts]
+pycss45-gui = "pycss45_gui:main"
+
+[tool.setuptools]
+py-modules = ["pycss45", "pycss45_gui"]
