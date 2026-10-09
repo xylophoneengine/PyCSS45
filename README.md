@@ -121,24 +121,23 @@ radiometric integral (W/m²), the CIE 1976 colour (Y, u′, v′) and its positi
 (×) in the u′v′ chromaticity diagram; Clear resets plot and values. The
 **File writer** tab appends every measurement to a CSV file (one row per
 measurement: timestamp, integration time, integrals, Y/u′/v′, then one
-column per wavelength). The colour math is done with [luxpy] from the
+column per wavelength). The colour math is done with [colour-science] from the
 measured spectrum, not from the device. There is no gain control - the
 device auto-ranges (see PROTOCOL.md).
 
 ```bash
-pip install matplotlib luxpy    # extra deps for the GUI; Tk comes with Python
+pip install matplotlib colour-science scipy    # extra deps for the GUI; Tk comes with Python
 pycss45-gui
 ```
 
 Pick **Demo** as the device to try the viewer without hardware. Measurement is
 single-shot on the UI thread; the auto integration time can block it for a few
-seconds. Tested with luxpy 1.11.4, which needs numpy < 1.25 at import time -
-with numpy 2.x the luxpy import fails inside its own bundled tables.
+seconds.
 
 For a scripted one-off measurement and plot there is `measure_spectrum.ipynb`
 (needs jupyter).
 
-[luxpy]: https://github.com/ksmet1977/luxpy
+[colour-science]: https://github.com/colour-science/colour
 
 ## Development
 

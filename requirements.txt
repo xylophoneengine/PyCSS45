@@ -1,8 +1,9 @@
 # driver (same as pyproject.toml dependencies)
-numpy>=1.24,<1.25  # luxpy 1.11.4 fails to import with newer numpy
+numpy>=2.0  # np.trapezoid (np.trapz is removed in numpy 2.5)
 pyserial>=3.5
 hidapi>=0.14
 
 # GUI (pycss45_gui.py); Tk comes with Python
 matplotlib>=3.7
-luxpy==1.11.4
+colour-science>=0.4.7
+scipy>=1.10  # colour-science uses it for spectral interpolation

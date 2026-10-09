@@ -3,7 +3,7 @@
 Run: python -m pycss45_gui   (pick "Demo" as device to try it without hardware)
 
 Click Measure for a single-shot spectrum. Photopic/radiometric integrals and
-the CIE 1976 colour are computed from the measured spectrum with luxpy, not
+the CIE 1976 colour are computed from the measured spectrum with colour-science, not
 from the driver's get_photopic()/get_par(). The File writer tab appends each
 measurement to a CSV file.
 """
@@ -18,12 +18,13 @@ from pathlib import Path
 from tkinter import filedialog, ttk
 from typing import TypeVar
 
-import luxpy as lx
+import colour
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
+
 from pycss45 import CSS45, N_PIXELS, Css45Error, IntegrationTime, Measurement
 
 BG: str = "#1d1f24"
@@ -68,15 +69,20 @@ def analyse(wavelengths: np.ndarray, spectrum: np.ndarray) -> tuple[float, float
     """Photopic integral (lx), radiometric integral (W/m2) and CIE 1976
     (Y, u', v') from one spectrum.
 
-    luxpy 1.11.4 API as verified in this environment: spd_to_xyz with
-    relative=False returns absolute XYZ, so Y is the photopic integral in lx.
+    colour-science sd_to_XYZ with k=683 lm/W (CIE 1931 2 deg CMFs) returns
+    absolute XYZ, so Y is the photopic integral in lx.
     """
-    S: np.ndarray = np.vstack([wavelengths, spectrum])  # 2 x N
-    xyz: np.ndarray = lx.spd_to_xyz(S, relative=False)  # absolute XYZ
-    photopic_lx: float = float(xyz[0, 1])  # Y is the photopic integral in lx
-    radiometric_wm2: float = float(np.trapz(spectrum, wavelengths))
-    y, u, v = (float(c) for c in lx.xyz_to_Yuv(xyz)[0])  # [[Y, u', v']]
-    return photopic_lx, radiometric_wm2, (y, u, v)
+    # Pixel wavelengths are not evenly spaced; ASTM E308 in sd_to_XYZ needs a
+    # regular interval, so resample linearly onto a 1 nm grid first.
+    grid: np.ndarray = np.arange(np.ceil(wavelengths[0]), np.floor(wavelengths[-1]) + 1)
+    sd: colour.SpectralDistribution = colour.SpectralDistribution(
+        np.interp(grid, wavelengths, spectrum), grid
+    )
+    xyz: np.ndarray = colour.sd_to_XYZ(sd, k=683)  # absolute XYZ
+    photopic_lx: float = float(xyz[1])  # Y is the photopic integral in lx
+    radiometric_wm2: float = float(np.trapezoid(spectrum, wavelengths))
+    u, v = (float(c) for c in colour.xy_to_Luv_uv(colour.XYZ_to_xy(xyz)))
+    return photopic_lx, radiometric_wm2, (photopic_lx, u, v)
 
 
 def append_csv(
@@ -266,15 +272,19 @@ class App:
         fig: Figure = Figure(figsize=(2.3, 2.3), dpi=100, facecolor=PANEL)
         fig.subplots_adjust(left=0.18, right=0.97, top=0.97, bottom=0.14)
         ax: Axes = fig.add_subplot(111)
-        lx.plotSL(
-            cspace="Yuv",
-            BBL=True,
-            DL=False,
-            axh=ax,
-            show=False,
-            diagram_colors=True,
-            formatstr="w-",
-        )
+        colour.plotting.plot_chromaticity_diagram_CIE1976UCS(axes=ax, show=False)
+        ax.set_title("")
+        for artist in [*ax.texts, *ax.lines, *ax.collections]:  # keep colour fill
+            artist.remove()
+        uv: np.ndarray = colour.xy_to_Luv_uv(
+            colour.XYZ_to_xy(
+                colour.MSDS_CMFS["CIE 1931 2 Degree Standard Observer"].values
+            )
+        )  # spectral locus, 360-830 nm
+        ax.plot(uv[:, 0], uv[:, 1], color=FG, linewidth=1.5)
+        ax.plot(
+            [uv[-1, 0], uv[0, 0]], [uv[-1, 1], uv[0, 1]], color=FG, linewidth=1.5
+        )  # closing purple line
         ax.set_facecolor(PANEL)
         ax.set_xlim(0.0, 0.65)
         ax.set_ylim(0.0, 0.62)
