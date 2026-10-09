@@ -169,7 +169,6 @@ class App:
 
         root.title("CSS45 Spectrum")
         root.configure(bg=BG)
-        root.resizable(False, False)
         self._style()
 
         top = ttk.Frame(root, padding=(12, 10))
@@ -249,6 +248,8 @@ class App:
 
         root.protocol("WM_DELETE_WINDOW", self.close)
         self._draw_empty()
+        root.update_idletasks()  # floor = natural size: shrinking never clips
+        root.minsize(root.winfo_reqwidth(), root.winfo_reqheight())
 
     def _card(
         self,
