@@ -891,7 +891,7 @@ class CSS45:
                 float(grid[1] - grid[0]),
                 n,
             )
-        return float(np.trapz(spectrum, grid))
+        return float(np.trapezoid(spectrum, grid))
 
     def get_radiometric_unit(self) -> RadiometricUnit:
         """Unit of the radiometric values (W or W/m2; wire: IhcU)."""
