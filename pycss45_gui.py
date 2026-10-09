@@ -18,15 +18,13 @@ from pathlib import Path
 from tkinter import filedialog, ttk
 from typing import TypeVar
 
+import luxpy as lx
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
-
-import luxpy as lx
-
-from pycss45 import CSS45, Css45Error, IntegrationTime, Measurement, N_PIXELS
+from pycss45 import CSS45, N_PIXELS, Css45Error, IntegrationTime, Measurement
 
 BG: str = "#1d1f24"
 PANEL: str = "#272a31"
@@ -49,14 +47,17 @@ def _it_label(it: IntegrationTime) -> str:
 
 
 IT_AUTO: str = "Auto"
-IT_BY_LABEL: dict[str, IntegrationTime] = {
-    _it_label(it): it for it in IntegrationTime
-}
+IT_BY_LABEL: dict[str, IntegrationTime] = {_it_label(it): it for it in IntegrationTime}
 IT_LABELS: list[str] = [IT_AUTO, *IT_BY_LABEL]
 PLACEHOLDER: str = "-"
 CSV_META: list[str] = [
-    "timestamp", "integration_time_s", "photopic_lx", "radiometric_W_m2",
-    "Y", "u_prime", "v_prime",
+    "timestamp",
+    "integration_time_s",
+    "photopic_lx",
+    "radiometric_W_m2",
+    "Y",
+    "u_prime",
+    "v_prime",
 ]
 
 Yuv = tuple[float, float, float]
@@ -79,7 +80,10 @@ def analyse(wavelengths: np.ndarray, spectrum: np.ndarray) -> tuple[float, float
 
 
 def append_csv(
-    path: Path, m: Measurement, photopic_lx: float, radiometric_wm2: float,
+    path: Path,
+    m: Measurement,
+    photopic_lx: float,
+    radiometric_wm2: float,
     yuv: Yuv,
 ) -> None:
     """Append m as one row: CSV_META columns, then one column per wavelength
@@ -168,7 +172,10 @@ class App:
         self.paths: dict[str, str | None] = {}  # label -> HID path (None: auto)
         self.dev_var: tk.StringVar = tk.StringVar()
         self.dev_box = ttk.Combobox(
-            top, textvariable=self.dev_var, width=28, state="readonly",
+            top,
+            textvariable=self.dev_var,
+            width=28,
+            state="readonly",
         )
         self.dev_box.pack(side="left", padx=6)
         ttk.Button(top, text="Rescan", command=self.scan_devices).pack(side="left")
@@ -194,7 +201,10 @@ class App:
         ttk.Label(panel, text="Integration time", foreground=MUTED).pack(anchor="w")
         self.it_var: tk.StringVar = tk.StringVar(value=IT_LABELS[0])
         ttk.Combobox(
-            panel, textvariable=self.it_var, width=12, state="readonly",
+            panel,
+            textvariable=self.it_var,
+            width=12,
+            state="readonly",
             values=IT_LABELS,
         ).pack(fill="x", pady=(2, 6))
         buttons = ttk.Frame(panel)
@@ -206,8 +216,11 @@ class App:
             side="left", fill="y", padx=(6, 0)
         )
         ttk.Label(
-            panel, text="auto integration time can block the UI for a few seconds",
-            foreground=MUTED, wraplength=216, justify="left",
+            panel,
+            text="auto integration time can block the UI for a few seconds",
+            foreground=MUTED,
+            wraplength=216,
+            justify="left",
         ).pack(fill="x", pady=(4, 10))
 
         self.photopic_var: tk.StringVar = self._card(
@@ -232,7 +245,10 @@ class App:
         self._draw_empty()
 
     def _card(
-        self, parent: ttk.Frame, title: str, style: str,
+        self,
+        parent: ttk.Frame,
+        title: str,
+        style: str,
     ) -> tuple[ttk.Frame, tk.StringVar]:
         """Titled value card; returns the card and the variable holding its
         value."""
@@ -251,8 +267,13 @@ class App:
         fig.subplots_adjust(left=0.18, right=0.97, top=0.97, bottom=0.14)
         ax: Axes = fig.add_subplot(111)
         lx.plotSL(
-            cspace="Yuv", BBL=True, DL=False, axh=ax, show=False,
-            diagram_colors=True, formatstr="w-",
+            cspace="Yuv",
+            BBL=True,
+            DL=False,
+            axh=ax,
+            show=False,
+            diagram_colors=True,
+            formatstr="w-",
         )
         ax.set_facecolor(PANEL)
         ax.set_xlim(0.0, 0.65)
@@ -285,8 +306,10 @@ class App:
             side="left", padx=(6, 0)
         )
         ttk.Checkbutton(
-            tab, text="Append every measurement to this file",
-            variable=self.csv_on, command=self._toggle_csv,
+            tab,
+            text="Append every measurement to this file",
+            variable=self.csv_on,
+            command=self._toggle_csv,
         ).pack(anchor="w")
         ttk.Label(tab, textvariable=self.csv_info).pack(anchor="w", pady=(10, 0))
         ttk.Label(
@@ -296,12 +319,16 @@ class App:
                 "one column per wavelength (header = wavelength in nm). "
                 "Existing files are appended to if their header matches."
             ),
-            foreground=MUTED, wraplength=640, justify="left",
+            foreground=MUTED,
+            wraplength=640,
+            justify="left",
         ).pack(anchor="w", pady=(10, 0))
 
     def _browse_csv(self) -> None:
         path: str = filedialog.asksaveasfilename(
-            parent=self.root, title="Write spectra to", defaultextension=".csv",
+            parent=self.root,
+            title="Write spectra to",
+            defaultextension=".csv",
             filetypes=[("CSV", "*.csv"), ("All files", "*")],
             confirmoverwrite=False,  # rows are appended, nothing is overwritten
         )
@@ -315,7 +342,8 @@ class App:
             return
         self.csv_rows = 0
         self.csv_info.set(
-            f"Writing to {self.csv_path.get().strip()}" if self.csv_on.get()
+            f"Writing to {self.csv_path.get().strip()}"
+            if self.csv_on.get()
             else "Writer off"
         )
 
@@ -328,12 +356,17 @@ class App:
         )
         s.map("TButton", background=[("active", "#353943")])
         s.configure(
-            "Go.TButton", font=("TkDefaultFont", 13, "bold"), padding=(18, 12),
-            background=ACCENT, foreground="#0d1117",
+            "Go.TButton",
+            font=("TkDefaultFont", 13, "bold"),
+            padding=(18, 12),
+            background=ACCENT,
+            foreground="#0d1117",
         )
         s.map("Go.TButton", background=[("active", "#7bbcff")])
         edge: dict[str, str] = {
-            "bordercolor": EDGE, "lightcolor": PANEL, "darkcolor": PANEL
+            "bordercolor": EDGE,
+            "lightcolor": PANEL,
+            "darkcolor": PANEL,
         }
         s.configure("TCombobox", arrowcolor=FG, background=PANEL, **edge)
         s.map(
@@ -344,25 +377,31 @@ class App:
             selectbackground=[("readonly", PANEL)],
             selectforeground=[("readonly", FG)],
         )
-        for opt, val in (("background", PANEL), ("foreground", FG),
-                         ("selectBackground", ACCENT), ("selectForeground", BG)):
+        for opt, val in (
+            ("background", PANEL),
+            ("foreground", FG),
+            ("selectBackground", ACCENT),
+            ("selectForeground", BG),
+        ):
             self.root.option_add(f"*TCombobox*Listbox.{opt}", val)
         s.configure("TEntry", foreground=FG, insertcolor=FG, **edge)
         s.configure("TCheckbutton", indicatorbackground=PANEL, indicatorforeground=FG)
         s.map("TCheckbutton", background=[("active", BG)])
         s.configure("TNotebook", background=BG, tabmargins=0, **edge)
-        s.configure("TNotebook.Tab", background=PANEL, foreground=MUTED,
-                    padding=(14, 5), **edge)
-        s.map("TNotebook.Tab", background=[("selected", BG)],
-              foreground=[("selected", FG)])
+        s.configure(
+            "TNotebook.Tab", background=PANEL, foreground=MUTED, padding=(14, 5), **edge
+        )
+        s.map(
+            "TNotebook.Tab",
+            background=[("selected", BG)],
+            foreground=[("selected", FG)],
+        )
         s.configure("Card.TFrame", background=PANEL)
         s.configure("CardMuted.TLabel", background=PANEL, foreground=MUTED)
         s.configure(
             "Value.TLabel", background=PANEL, font=("TkDefaultFont", 15, "bold")
         )
-        s.configure(
-            "Wide.TLabel", background=PANEL, font=("TkDefaultFont", 11, "bold")
-        )
+        s.configure("Wide.TLabel", background=PANEL, font=("TkDefaultFont", 11, "bold"))
 
     # --- plot -------------------------------------------------------------
 
@@ -386,8 +425,13 @@ class App:
         self.ax.set_xlim(380, 780)
         self.ax.set_ylim(0, 1)
         self.ax.text(
-            0.5, 0.5, "no measurement yet", color=MUTED,
-            transform=self.ax.transAxes, ha="center", va="center",
+            0.5,
+            0.5,
+            "no measurement yet",
+            color=MUTED,
+            transform=self.ax.transAxes,
+            ha="center",
+            va="center",
         )
         self.canvas.draw()
 
@@ -509,7 +553,11 @@ class App:
         self.status.set(status)
 
     def _write_csv(
-        self, m: Measurement, photopic_lx: float, radiometric_wm2: float, yuv: Yuv,
+        self,
+        m: Measurement,
+        photopic_lx: float,
+        radiometric_wm2: float,
+        yuv: Yuv,
     ) -> str:
         """Append m to the CSV file; returns a status note. A failed write
         turns the writer off so the error is not repeated silently."""
