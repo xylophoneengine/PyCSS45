@@ -103,7 +103,10 @@ info (`get_detector_type`, `get_detector_serial_number`) and `get_dll_version`
   remaining unknowns are listed in [PROTOCOL.md](PROTOCOL.md).
 - **Integration time is automatic** by default (`measure()`). Use
   `measure_manual(IntegrationTime.MS10)` for a fixed index 0-18
-  (12 us to 2.56 s, table in [PROTOCOL.md](PROTOCOL.md)).
+  (12 us to 2.56 s, table in [PROTOCOL.md](PROTOCOL.md)). Over USB HID the
+  longest fixed time is 0.64 s (`MS640`); `S1_28` and `S2_56` raise
+  `Css45Error` -25100 there (rig-verified 2026-10-12). Serial transport is
+  unchanged and untested on the rig.
 - **Dark offset:** `measure_dark_offset()` measures the dark offset;
   `is_offset_invalid()` tells you when a stored offset must be re-measured.
   Check `get_status()`/`Css45Error` for warnings such as overload (25023)
@@ -115,8 +118,8 @@ info (`get_detector_type`, `get_detector_serial_number`) and `get_dll_version`
 
 `pycss45-gui` (or `python -m pycss45_gui`) is a minimal spectral viewer:
 the device box lists the CSS45s found over USB HID (Rescan refreshes it), an
-integration-time box offers Auto or any of the 19 fixed times (12 us to
-2.56 s), and Measure plots the spectrum with the photopic integral (lx),
+integration-time box offers Auto or the fixed times (12 us to 2.56 s; over
+HID only up to 0.64 s, 1.28/2.56 s raise -25100), and Measure plots the spectrum with the photopic integral (lx),
 radiometric integral (W/m²), the CIE 1976 colour (Y, u′, v′) and its position
 (×) in the u′v′ chromaticity diagram; Clear resets plot and values. The
 **File writer** tab appends every measurement to a CSV file (one row per

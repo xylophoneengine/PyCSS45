@@ -170,15 +170,20 @@ class TestHelpers(unittest.TestCase):
 
 
 class TestHidTransport(unittest.TestCase):
-    def test_write_chunks_into_reports(self) -> None:
+    def test_write_one_report(self) -> None:
         dev: FakeHidDevice = FakeHidDevice([])
-        hid_transport(dev).write("abcdefghij")
-        self.assertEqual(dev.written, [b"\x00abcdefgh", b"\x00ij" + b"\x00" * 6])
+        hid_transport(dev).write("GB1380.0")
+        hid_transport(dev).write("hh0")
+        self.assertEqual(dev.written, [b"\x00GB1380.0", b"\x00hh0" + b"\x00" * 5])
 
     def test_write_too_long(self) -> None:
+        # Real CSS45 runs each 8-char report alone: hi2560000 set 256000 us
+        # and still acked, so a 9-char command must fail before sending.
+        dev: FakeHidDevice = FakeHidDevice([])
         with self.assertRaises(Css45Error) as cm:
-            hid_transport(FakeHidDevice([])).write("x" * 44)
+            hid_transport(dev).write("hi2560000")
         self.assertEqual(cm.exception.code, -25100)
+        self.assertEqual(dev.written, [])
 
     def test_read_ascii(self) -> None:
         echo: bytes = b"\x0007200".ljust(64, b"\x00")
