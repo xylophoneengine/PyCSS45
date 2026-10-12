@@ -171,9 +171,23 @@ class TestHelpers(unittest.TestCase):
 
 class TestHidTransport(unittest.TestCase):
     def test_write_chunks_into_reports(self) -> None:
-        dev: FakeHidDevice = FakeHidDevice([])
+        dev: FakeHidDevice = FakeHidDevice([b"\x00bcdefgh".ljust(64, b"\x00")])
         hid_transport(dev).write("abcdefghij")
         self.assertEqual(dev.written, [b"\x00abcdefgh", b"\x00ij" + b"\x00" * 6])
+        self.assertEqual(dev.reports, [])  # per-report reply consumed
+
+    def test_long_command_echo(self) -> None:
+        # Real CSS45 at 2.56 s: hi2560000 spans two reports; the first gets
+        # its own echo, which used to be taken as the ack ('i256000').
+        reports: list[bytes] = [
+            b"\x00i256000".ljust(64, b"\x00"),
+            b"\x00i2560000".ljust(64, b"\x00"),
+        ]
+        t: pycss45._HidTransport = hid_transport(FakeHidDevice(reports))
+        t.write("hi2560000")
+        self.assertEqual(t.read_ascii(10), "i2560000")
+        with self.assertRaises(TimeoutError):  # nothing left to desync on
+            t.read_ascii(10)
 
     def test_write_too_long(self) -> None:
         with self.assertRaises(Css45Error) as cm:

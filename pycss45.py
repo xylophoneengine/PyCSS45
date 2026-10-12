@@ -260,7 +260,8 @@ class _HidTransport:
 
     Out: the command is split into 8-char ASCII chunks, each written as one
     9-byte output report [0x00 report id][8 bytes, NUL-padded]; commands
-    are at most 43 chars. In: 65-byte input reports [report id][64 data
+    are at most 43 chars, and the device answers every non-final report
+    with one input report, which write() discards. In: 65-byte input reports [report id][64 data
     bytes]; ASCII replies are NUL-padded with no LF and end at LF or at
     the first NUL (echo acks carry one leading NUL byte), binary replies
     are exact byte counts spanning reports (all hardware-observed). The
@@ -296,6 +297,11 @@ class _HidTransport:
             chunk: bytes = data[i : i + _HID_CHUNK].ljust(_HID_CHUNK, b"\x00")
             if dev.write(b"\x00" + chunk) < 0:
                 raise Css45Error(-25007, f"problem sending {cmd!r}")
+            if i + _HID_CHUNK < len(data):
+                # The device replies to each non-final report on its own
+                # (hardware: hi2560000 -> 'i256000', the echo of 'hi256000');
+                # drop it so read_ascii gets the reply to the whole command.
+                self._read_report(_TIMEOUT_MS)
 
     def _read_report(self, timeout_ms: int) -> bytes:
         """Data bytes of one input report (report id 0x00; hidapi keeps the
