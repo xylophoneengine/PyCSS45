@@ -144,8 +144,7 @@ class Measurement:
 
 # --- wire constants ----------------------------------------------------------
 
-_HID_MAX_CMD: int = 43  # 'command too long (> 43 char)' limit
-_HID_CHUNK: int = 8  # ASCII bytes per output report
+_HID_CHUNK: int = 8  # ASCII bytes per output report = max HID command
 _HID_REPORT_IN: int = 65  # [report id][64 data bytes]
 _HID_DATA: int = 64  # payload bytes per input report
 _TIMEOUT_MS: int = 6000  # SDK normal timeout (ms, PROTOCOL.md)
@@ -258,13 +257,14 @@ class _Wire(Protocol):
 class _HidTransport:
     """USB HID transport via hidapi; frames like the vendor's GOcommUSBHID.dll.
 
-    Out: the command is split into 8-char ASCII chunks, each written as one
-    9-byte output report [0x00 report id][8 bytes, NUL-padded]; commands
-    are at most 43 chars, and the device answers every non-final report
-    with one input report, which write() discards. In: 65-byte input reports [report id][64 data
-    bytes]; ASCII replies are NUL-padded with no LF and end at LF or at
-    the first NUL (echo acks carry one leading NUL byte), binary replies
-    are exact byte counts spanning reports (all hardware-observed). The
+    Out: one 9-byte output report [0x00 report id][8 bytes, NUL-padded].
+    The vendor DLL splits longer commands into 8-char reports, but the
+    CSS45 runs each report as its own command (hardware: hi2560000 set
+    256000 us), so commands over 8 chars are refused before sending.
+    In: 65-byte input reports [report id][64 data bytes]; ASCII replies
+    are NUL-padded with no LF and end at LF or at the first NUL (echo acks
+    carry one leading NUL byte), binary replies are exact byte counts
+    spanning reports (all hardware-observed). The
     device opens by enumerated path; find() matches the hardware-verified
     VID/PID (0x0C49/0x0010) or 'Gigahertz' device strings.
     """
@@ -290,18 +290,15 @@ class _HidTransport:
 
     def write(self, cmd: str) -> None:
         data: bytes = cmd.encode("ascii")
-        if len(data) > _HID_MAX_CMD:
-            raise Css45Error(-25100, f"command too long (> 43 char): {cmd!r}")
+        if len(data) > _HID_CHUNK:
+            raise Css45Error(
+                -25100,
+                f"command too long for one HID report (> 8 char): {cmd!r}; "
+                "the CSS45 would run each 8-char piece as its own command",
+            )
         dev: hid.device = self._require()
-        for i in range(0, len(data), _HID_CHUNK):
-            chunk: bytes = data[i : i + _HID_CHUNK].ljust(_HID_CHUNK, b"\x00")
-            if dev.write(b"\x00" + chunk) < 0:
-                raise Css45Error(-25007, f"problem sending {cmd!r}")
-            if i + _HID_CHUNK < len(data):
-                # The device replies to each non-final report on its own
-                # (hardware: hi2560000 -> 'i256000', the echo of 'hi256000');
-                # drop it so read_ascii gets the reply to the whole command.
-                self._read_report(_TIMEOUT_MS)
+        if dev.write(b"\x00" + data.ljust(_HID_CHUNK, b"\x00")) < 0:
+            raise Css45Error(-25007, f"problem sending {cmd!r}")
 
     def _read_report(self, timeout_ms: int) -> bytes:
         """Data bytes of one input report (report id 0x00; hidapi keeps the
@@ -798,7 +795,9 @@ class CSS45:
         """Measurement with a fixed integration-time index (0-18).
 
         Wire: hi<us> takes microseconds 12..2560000 (the index table maps
-        1:1), then G0400, Ihi, G17.
+        1:1), then G0400, Ihi, G17. Over HID the maximum is 0.64 s
+        (hi640000): indices 17 and 18 (1.28 s, 2.56 s) need a 9-char
+        command and raise Css45Error -25100 before anything is sent.
         """
         us: int = round(IntegrationTime(integration_time).seconds * 1e6)
         with self._lock:
