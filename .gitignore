@@ -33,3 +33,7 @@ WASTE/*
 build/
 dist/
 PROTOCOL.md
+diagnose_css45.py
+dump_settings_css45.py
+light_test_css45.py
+settings_*.txt
